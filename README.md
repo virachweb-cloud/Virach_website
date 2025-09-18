@@ -60,6 +60,21 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Environment Variables
+
+Create a `.env.local` file in the project root for local development. Values below are examples; replace with your own.
+
+```bash
+VITE_GOOGLE_SHEET_CONTACT_URL="https://script.google.com/macros/s/XXXXXXXX/exec"
+VITE_GOOGLE_SHEET_FRESHER_URL="https://script.google.com/macros/s/YYYYYYYY/exec"
+VITE_GOOGLE_SHEET_EXPERIENCED_URL="https://script.google.com/macros/s/ZZZZZZZZ/exec"
+
+# EmailJS (optional for contact email notifications)
+VITE_EMAILJS_SERVICE_ID="service_xxxxx"
+VITE_EMAILJS_TEMPLATE_ID="template_xxxxx"
+VITE_EMAILJS_PUBLIC_KEY="xxxxxxxxxxxxxxxxx"
+```
+
 ## How can I deploy this project?
 
 Simply open  and click on Share -> Publish.

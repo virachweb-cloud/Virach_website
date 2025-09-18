@@ -11,6 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { sendToGoogleSheet } from "@/lib/utils"; // ✅ import utility
 import { getSheetUrlOrThrow } from "@/lib/sheets";
+import { sendContactEmail } from "@/lib/email";
 
 // Validation schema
 const formSchema = z.object({
@@ -103,12 +104,31 @@ export const ContactSection = () => {
       Message: data.message,
     };
 
-    const result = await sendToGoogleSheet(payload, scriptURL);
+    const sheetResult = await sendToGoogleSheet(payload, scriptURL);
 
-    if (result.success) {
-      alert("✅ Thank you! Your message has been sent successfully.");
-      reset(); // reset form after success
+    // Attempt EmailJS as well, but don't block success on email unless you prefer strict mode
+    const emailPayload = {
+      first_name: data.firstName,
+      last_name: data.lastName,
+      work_email: data.email,
+      designation: data.designation || "",
+      phone: combinedPhoneSpaced,
+      company_name: data.company || "",
+      service: data.service,
+      project: data.message,
+    };
+    const emailResult = await sendContactEmail(emailPayload);
+
+    if (sheetResult.success) {
+      // If sheet succeeded, consider overall success regardless of email result
+      alert(
+        emailResult.success
+          ? "✅ Your message was sent and an email confirmation was delivered."
+          : "✅ Your message was sent. (Heads up: email notification failed.)"
+      );
+      reset();
     } else {
+      // If sheet failed, report combined failure
       alert("❌ Sorry, there was an error sending your message. Please try again.");
     }
   };
