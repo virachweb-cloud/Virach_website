@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { sendToGoogleSheet } from "@/lib/utils";
 import { getSheetUrlOrThrow } from "@/lib/sheets";
+import { sendCareerApplicationEmail } from "@/lib/email";
 
 // ✅ Zod schema
 const experiencedFormSchema = z.object({
@@ -128,10 +129,42 @@ export const ExperiencedApplicationDialog = ({
         "Reference Phone": data.referencePhone || "",
       };
 
-      const result = await sendToGoogleSheet(payload, scriptURL);
+      // Send to Google Sheets
+      const sheetResult = await sendToGoogleSheet(payload, scriptURL);
 
-      if (result.success) {
+      // Send email notification
+      const emailPayload = {
+        position_applied: data.position,
+        full_name: data.fullName,
+        address: data.address,
+        phone_number: data.phone,
+        email_address: data.email,
+        ug_institution: data.undergradInstitution,
+        ug_degree: data.undergradDegree,
+        ug_year: data.undergradYear,
+        pg_institution: data.postgradInstitution || "N/A",
+        pg_degree: data.postgradDegree || "N/A",
+        pg_year: data.postgradYear || "N/A",
+        company_name: data.company,
+        position_held: data.employmentPosition,
+        start_date: data.startDate,
+        end_date: data.endDate,
+        key_responsibilities: data.responsibilities,
+        skills_and_qualifications: data.skills,
+        reference_name: data.referenceName || "N/A",
+        reference_relationship: data.referenceRelationship || "N/A",
+        reference_phone: data.referencePhone || "N/A",
+        submission_date: new Date().toLocaleDateString(),
+      };
+
+      const emailResult = await sendCareerApplicationEmail(emailPayload, 'experienced');
+
+      if (sheetResult.success && emailResult.success) {
         toast.success("Your application has been submitted successfully!");
+        form.reset();
+        onOpenChange(false);
+      } else if (sheetResult.success) {
+        toast.success("Application submitted to database, but email notification failed.");
         form.reset();
         onOpenChange(false);
       } else {

@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { sendToGoogleSheet } from "@/lib/utils";
 import { getSheetUrlOrThrow } from "@/lib/sheets";
+import { sendCareerApplicationEmail } from "@/lib/email";
 
 // ✅ Schema with UG required and PG optional
 const fresherFormSchema = z.object({
@@ -113,10 +114,42 @@ export const FresherApplicationDialog = ({
         "Reference Phone": data.referencePhone || "",
       };
 
-      const result = await sendToGoogleSheet(payload, scriptURL);
+      // Send to Google Sheets
+      const sheetResult = await sendToGoogleSheet(payload, scriptURL);
 
-      if (result.success) {
+      // Send email notification
+      const emailPayload = {
+        position_applied: data.position,
+        full_name: data.fullName,
+        address: data.address,
+        phone_number: data.phone,
+        email_address: data.email,
+        ug_institution: data.ugSchool,
+        ug_degree: data.ugDegree,
+        ug_year: data.ugYearCompleted,
+        pg_institution: data.pgSchool || "N/A",
+        pg_degree: data.pgDegree || "N/A",
+        pg_year: data.pgYearCompleted || "N/A",
+        company_name: "N/A (Fresher)",
+        position_held: "N/A (Fresher)",
+        start_date: "N/A",
+        end_date: "N/A",
+        key_responsibilities: "N/A (Fresher)",
+        skills_and_qualifications: data.skills,
+        reference_name: data.referenceName || "N/A",
+        reference_relationship: data.referenceRelationship || "N/A",
+        reference_phone: data.referencePhone || "N/A",
+        submission_date: new Date().toLocaleDateString(),
+      };
+
+      const emailResult = await sendCareerApplicationEmail(emailPayload, 'fresher');
+
+      if (sheetResult.success && emailResult.success) {
         toast.success("Your application has been submitted successfully!");
+        form.reset();
+        onOpenChange(false);
+      } else if (sheetResult.success) {
+        toast.success("Application submitted to database, but email notification failed.");
         form.reset();
         onOpenChange(false);
       } else {
