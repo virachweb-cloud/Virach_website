@@ -154,7 +154,7 @@ export const FresherApplicationDialog = ({
         form.reset();
         onOpenChange(false);
       } else if (sheetResult.success) {
-        toast.success("Application submitted to database, but email notification failed.");
+        toast.success(`Application submitted to database, but email notification failed: ${emailResult.message || 'unknown error'}`);
         form.reset();
         onOpenChange(false);
       } else {

@@ -29,8 +29,9 @@ export async function sendContactEmail(payload: EmailPayload) {
     const result = await emailjs.send(serviceId, templateId, payload, { publicKey });
     return { success: true, message: result.text ?? "Email sent" };
   } catch (error) {
-    console.error("EmailJS send error", error);
-    return { success: false, message: "Failed to send email" };
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("EmailJS send error", message, error);
+    return { success: false, message };
   }
 }
 
@@ -56,10 +57,11 @@ export async function sendCareerApplicationEmail(
     const result = await emailjs.send(serviceId, templateId, payload, { publicKey });
     return { success: true, message: result.text ?? "Career application email sent" };
   } catch (error) {
-    console.error("EmailJS career application send error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("EmailJS career application send error:", message, error);
     return {
       success: false,
-      message: "Failed to send career application email",
+      message,
     };
   }
 }

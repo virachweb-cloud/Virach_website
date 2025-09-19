@@ -129,7 +129,7 @@ export const ContactSection = () => {
       alert(
         emailResult.success
           ? "✅ Your message was sent and an email confirmation was delivered."
-          : "✅ Your message was sent. (Heads up: email notification failed.)"
+          : `✅ Your message was sent. (Email notification failed: ${emailResult.message || "unknown error"})`
       );
       reset();
     } else {
