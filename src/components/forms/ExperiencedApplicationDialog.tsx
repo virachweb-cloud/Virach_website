@@ -100,9 +100,14 @@ export const ExperiencedApplicationDialog = ({
     },
   });
 
-  const scriptURL = getSheetUrlOrThrow("experienced");
-
   const onSubmit = async (data: ExperiencedFormData) => {
+    let scriptURL: string;
+    try {
+      scriptURL = getSheetUrlOrThrow("experienced");
+    } catch (err) {
+      toast.error("Configuration error: missing Google Script URL for experienced form.");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const payload = {

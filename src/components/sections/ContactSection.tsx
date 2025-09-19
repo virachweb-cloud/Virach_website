@@ -80,9 +80,14 @@ export const ContactSection = () => {
     mode: "onChange", // ✅ validate on typing, not just on submit
   });
 
-  const scriptURL = getSheetUrlOrThrow("contact");
-
   const onSubmit = async (data: FormData) => {
+    let scriptURL: string;
+    try {
+      scriptURL = getSheetUrlOrThrow("contact");
+    } catch (err) {
+      alert("Configuration error: missing Google Script URL for contact form.");
+      return;
+    }
     const combinedPhoneSpaced = `${data.countryCode} ${data.phone}`;
     const combinedPhoneCompact = `${data.countryCode}${data.phone}`;
     const payload = {

@@ -90,9 +90,14 @@ export const FresherApplicationDialog = ({
     },
   });
 
-  const scriptURL = getSheetUrlOrThrow("fresher");
-
   const onSubmit = async (data: FresherFormData) => {
+    let scriptURL: string;
+    try {
+      scriptURL = getSheetUrlOrThrow("fresher");
+    } catch (err) {
+      toast.error("Configuration error: missing Google Script URL for fresher form.");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const payload = {
