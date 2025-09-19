@@ -17,7 +17,7 @@ const Careers = () => {
       className="min-h-screen min-h-[100dvh] bg-fixed bg-cover bg-center bg-no-repeat relative mt-16"
       style={{
         backgroundImage:
-          "url('https://images.unsplash.com/photo-1542323228-002ac256e7b8?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+          "url('https://images.unsplash.com/photo-1542323228-002ac256e7b8?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')",
       }}
     >
       {/* Overlay */}
