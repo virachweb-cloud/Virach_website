@@ -15,7 +15,7 @@ emailjs.init(PUBLIC_KEY);
 
 export async function sendContactEmail(payload: EmailPayload) {
   const serviceId = getEnv("VITE_EMAILJS_SERVICE_ID") || "service_8kqtneq";
-  const templateId = getEnv("VITE_EMAILJS_CONTACT_TEMPLATE_ID") || getEnv("VITE_EMAILJS_TEMPLATE_ID");
+  const templateId = getEnv("VITE_EMAILJS_CONTACT_TEMPLATE_ID") || getEnv("VITE_EMAILJS_TEMPLATE_ID") || "template_eumn2ma";
   const publicKey = PUBLIC_KEY;
 
   if (!templateId) {
@@ -42,8 +42,8 @@ export async function sendCareerApplicationEmail(
   const serviceId = getEnv("VITE_EMAILJS_SERVICE_ID") || "service_8kqtneq";
   const templateId =
     applicationType === "fresher"
-      ? getEnv("VITE_EMAILJS_FRESHER_TEMPLATE_ID") || "template_fresher_app"
-      : getEnv("VITE_EMAILJS_EXPERIENCED_TEMPLATE_ID") || "template_experienced_app";
+      ? getEnv("VITE_EMAILJS_FRESHER_TEMPLATE_ID") || "template_eumn2ma"
+      : getEnv("VITE_EMAILJS_EXPERIENCED_TEMPLATE_ID") || "template_eumn2ma";
   const publicKey = PUBLIC_KEY;
 
   if (!templateId) {
