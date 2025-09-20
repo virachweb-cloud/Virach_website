@@ -211,3 +211,4 @@ The template now uses these variables that match your form data:
 The "No Data" issue was because the code was trying to use template IDs that don't exist in your EmailJS dashboard. Now it will use your existing template!
 
 
+

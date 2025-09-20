@@ -15,7 +15,7 @@ emailjs.init(PUBLIC_KEY);
 
 export async function sendContactEmail(payload: EmailPayload) {
   const serviceId = getEnv("VITE_EMAILJS_SERVICE_ID") || "service_8kqtneq";
-  const templateId = getEnv("VITE_EMAILJS_CONTACT_TEMPLATE_ID") || getEnv("VITE_EMAILJS_TEMPLATE_ID") || "template_eumn2ma";
+  const templateId = getEnv("VITE_EMAILJS_CONTACT_TEMPLATE_ID") || "template_x10de8h";
   const publicKey = PUBLIC_KEY;
 
   if (!templateId) {
