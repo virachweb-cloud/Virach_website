@@ -76,10 +76,12 @@ export const HeroSection = () => {
                 Build
               </Button>
             </Link>
-            <Button className="primary group" >
-              <Rocket className="mr-2 h-5 w-5 group-hover:animate-pulse" />
-              Transform
-            </Button>
+            <Link to="/careers">
+              <Button className="primary group" >
+                <Rocket className="mr-2 h-5 w-5 group-hover:animate-pulse" />
+                Transform
+              </Button>
+            </Link>
             <Link to="/contact">
               <Button className="btn-neon group ">
                 Get Started
