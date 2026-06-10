@@ -16,7 +16,7 @@ const upload = multer({
 });
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const HR_EMAIL = "virach.web@outlook.com";
+const HR_EMAIL = "team@virach.in";
 const FROM_EMAIL = "noreply@virach.in";
 
 app.post("/send-email", upload.single("resume"), async (req, res) => {
@@ -215,8 +215,8 @@ app.post("/send-email", upload.single("resume"), async (req, res) => {
     await resend.emails.send({
   from: FROM_EMAIL,
   to: [
-  "virach.web@outlook.com",
-  "virach.web@gmail.com"
+  "team@virach.in",
+  "hr.virach@gmail.com"
 ],
       subject: `${experience === "Experienced" ? "Experienced" : "Fresher"} Application - ${formattedName}`, 
 
@@ -389,7 +389,7 @@ app.listen(5000, () => {
   try {
     const data = await resend.emails.send({
       from: "onboarding@resend.dev",
-      to: "virach.web@gmail.com",
+      to: "hr.virach@gmail.com",
       subject: "Resend Test",
       html: "<h1>Resend is Working 🚀</h1>",
     });
