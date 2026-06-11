@@ -205,7 +205,7 @@ formData.append(
 if (resume) {
   formData.append("resume", resume);
 }
-const emailRes = await fetch("http://localhost:5000/send-email", {
+const emailRes = await fetch("https://virach-website.onrender.com/send-email", {
   method: "POST",
   body: formData,
 });
