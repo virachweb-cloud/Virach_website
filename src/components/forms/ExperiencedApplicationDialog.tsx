@@ -73,6 +73,7 @@ export const ExperiencedApplicationDialog = ({
 }: ExperiencedApplicationDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resume, setResume] = useState<File | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const form = useForm<ExperiencedFormData>({
     resolver: zodResolver(experiencedFormSchema),
@@ -256,11 +257,16 @@ const emailResult = {
   message: emailText,
 };
 
-      if (sheetResult.success && emailResult.success) {
-        toast.success("Your application has been submitted successfully!");
-        form.reset();
-        onOpenChange(false);
-      } else if (sheetResult.success) {
+     if (sheetResult.success && emailResult.success) {
+  form.reset();
+
+  onOpenChange(false);
+
+  setTimeout(() => {
+    setShowSuccess(true);
+  }, 300);
+
+} else if (sheetResult.success) {
         toast.success(`Application submitted to database, but email notification failed: ${emailResult.message || 'unknown error'}`);
         form.reset();
         onOpenChange(false);
@@ -276,6 +282,7 @@ const emailResult = {
   };
 
   return (
+      <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -650,7 +657,39 @@ const emailResult = {
             </div>
           </form>
         </Form>
+        
       </DialogContent>
-    </Dialog>
-  );
+</Dialog>
+
+{showSuccess && (
+  <Dialog
+    open={showSuccess}
+    onOpenChange={setShowSuccess}
+  >
+    <DialogContent className="max-w-md text-center">
+      <div className="flex flex-col items-center gap-4 py-4">
+        <div className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center text-white text-5xl">
+          ✓
+        </div>
+
+        <h2 className="text-3xl font-bold">
+          Thank You!
+        </h2>
+
+        <p>
+          Your application has been submitted successfully.
+        </p>
+
+        <Button
+          onClick={() => setShowSuccess(false)}
+          className="w-full"
+        >
+          OK
+        </Button>
+      </div>
+    </DialogContent>
+  </Dialog>
+)}
+</>
+);
 };
