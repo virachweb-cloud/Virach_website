@@ -56,11 +56,19 @@ app.post("/check-application-duplicate", async (req, res) => {
   }
 });
  //Send OTP
+//Send OTP
 app.post("/send-otp", async (req, res) => {
   console.log("/SEND OTP REQUEST RECEIVED ===");
   console.log("Request Body:", req.body);
+
   try {
     const { phone } = req.body;
+
+    // Normalize phone number
+    const mobile = phone.replace(/\D/g, "");
+
+    console.log("Mobile sent to MSG91:", mobile);
+    console.log("Template ID:", process.env.MSG91_TEMPLATE_ID);
 
     const response = await axios.post(
       "https://control.msg91.com/api/v5/otp",
@@ -68,11 +76,12 @@ app.post("/send-otp", async (req, res) => {
       {
         params: {
           template_id: process.env.MSG91_TEMPLATE_ID,
-          mobile: `91${phone}`,
+          mobile: mobile,
           authkey: process.env.MSG91_AUTH_KEY,
         },
       }
     );
+
     console.log("MSG91 Status:", response.status);
     console.log("MSG91 Response:", response.data);
 
@@ -83,7 +92,7 @@ app.post("/send-otp", async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err.response?.data || err.message);
+    console.error("MSG91 Error:", err.response?.data || err.message);
 
     return res.status(500).json({
       success: false,
