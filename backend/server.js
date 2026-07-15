@@ -18,7 +18,42 @@ const upload = multer({
 const resend = new Resend(process.env.RESEND_API_KEY);
 const HR_EMAIL = "team@virach.in";
 const FROM_EMAIL = "noreply@virach.in";
+app.post("/check-application-duplicate", async (req, res) => {
+  try {
+    const { phone } = req.body;
 
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number is required",
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("applications")
+      .select("id")
+      .eq("phone", phone);
+
+    if (error) {
+      console.error(error);
+
+      return res.status(500).json({
+        success: false,
+      });
+    }
+
+    return res.json({
+      exists: data.length > 0,
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      success: false,
+    });
+  }
+});
 app.post("/send-email", upload.single("resume"), async (req, res) => {
   // Get form data first
   const { name, email, phone, skills, position, experience } = req.body;
@@ -33,6 +68,45 @@ app.post("/send-email", upload.single("resume"), async (req, res) => {
     .join(" ");
 
   try {
+    // Check if phone number already exists
+// Check if phone number already exists
+console.log("====================================");
+console.log("Request Body:", req.body);
+console.log("Phone received:", phone);
+console.log("Phone Type:", typeof phone);
+console.log("Phone Length:", phone?.length);
+
+const { data: existingPhone, error: phoneCheckError } = await supabase
+  .from("applications")
+  .select("id, phone")
+  .eq("phone", phone);
+
+console.log("Supabase Result:", existingPhone);
+console.log("Result Length:", existingPhone?.length);
+console.log("Phone Check Error:", phoneCheckError);
+console.log("====================================");
+
+if (existingPhone && existingPhone.length > 0) {
+  console.log(">>>> RETURNING 409 <<<<");
+
+  return res.status(409).json({
+    success: false,
+    message: "Phone number already exists.",
+  });
+}
+
+console.log("AAAAAAAAAAAA INSERT STARTING AAAAAAAAAAAA");
+
+if (phoneCheckError) {
+  console.error("Phone Check Error:", phoneCheckError);
+
+  return res.status(500).json({
+    success: false,
+    message: "Error checking phone number.",
+  });
+}
+
+
         // Store application data in Supabase
     const { error: supabaseError } = await supabase
       .from("applications")
@@ -215,8 +289,8 @@ app.post("/send-email", upload.single("resume"), async (req, res) => {
     await resend.emails.send({
   from: FROM_EMAIL,
   to: [
-  "team@virach.in",
-  "hr.virach@gmail.com"
+  "Virach.web@outlook.com",
+  "virach.web@gmail.com"
 ],
       subject: `${experience === "Experienced" ? "Experienced" : "Fresher"} Application - ${formattedName}`, 
 

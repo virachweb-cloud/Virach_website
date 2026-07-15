@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { OtpDialog } from "../OtpDialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -74,7 +75,17 @@ export const ExperiencedApplicationDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resume, setResume] = useState<File | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+const [pendingApplication, setPendingApplication] = useState<
+  (ExperiencedFormData & { resume: File | null }) | null
+>(null);
 
+const [showOtpDialog, setShowOtpDialog] = useState(false);
+
+const pendingPhone = useMemo(
+  () => pendingApplication?.phone ?? "",
+  [pendingApplication]
+);
   const form = useForm<ExperiencedFormData>({
     resolver: zodResolver(experiencedFormSchema),
     defaultValues: {
@@ -102,68 +113,11 @@ export const ExperiencedApplicationDialog = ({
   });
 
   const onSubmit = async (data: ExperiencedFormData) => {
-    let scriptURL: string;
-    try {
-      scriptURL = getSheetUrlOrThrow("experienced");
-    } catch (err) {
-      toast.error("Configuration error: missing Google Script URL for experienced form.");
-      return;
-    }
     setIsSubmitting(true);  
     try {
-      const payload = {
-        "Application Type": "Experienced Professional",
-        "Position": data.position,
-        "Full Name": data.fullName,
-        "Address": data.address,
-        "Phone": data.phone,
-        "Email": data.email,
-        "Undergraduate School": data.undergradInstitution,
-        "Undergraduate Degree": data.undergradDegree,
-        "Undergraduate Year": data.undergradYear,
-        "Postgraduate School": data.postgradInstitution || "",
-        "Postgraduate Degree": data.postgradDegree || "",
-        "Postgraduate Year": data.postgradYear || "",
-        "Company": data.company,
-        "Employment Position": data.employmentPosition,
-        "Start Date": data.startDate,
-        "End Date": data.endDate,
-        "Responsibilities": data.responsibilities,
-        "Skills": data.skills,
-        "Reference Name": data.referenceName || "",
-        "Reference Relationship": data.referenceRelationship || "",
-        "Reference Phone": data.referencePhone || "",
-      };
 
-      // Send to Google Sheets
-      const sheetResult = await sendToGoogleSheet(payload, scriptURL);
 
-      // Send email notification
-      const emailPayload = {
-        position_applied: data.position,
-        full_name: data.fullName,
-        address: data.address,
-        phone_number: data.phone,
-        email_address: data.email,
-        ug_institution: data.undergradInstitution,
-        ug_degree: data.undergradDegree,
-        ug_year: data.undergradYear,
-        pg_institution: data.postgradInstitution || "N/A",
-        pg_degree: data.postgradDegree || "N/A",
-        pg_year: data.postgradYear || "N/A",
-        company_name: data.company,
-        position_held: data.employmentPosition,
-        start_date: data.startDate,
-        end_date: data.endDate,
-        key_responsibilities: data.responsibilities,
-        skills_and_qualifications: data.skills,
-        reference_name: data.referenceName || "N/A",
-        reference_relationship: data.referenceRelationship || "N/A",
-        reference_phone: data.referencePhone || "N/A",
-        submission_date: new Date().toLocaleDateString(),
-      };
-
-      const formData = new FormData();
+const formData = new FormData();
 
 formData.append("name", data.fullName);
 formData.append("email", data.email);
@@ -245,34 +199,35 @@ formData.append(
 if (resume) {
   formData.append("resume", resume);
 }
-const emailRes = await fetch("https://virach-website.onrender.com/send-email", {
-  method: "POST",
-  body: formData,
+const duplicateRes = await fetch(
+  "http://localhost:5000/check-application-duplicate",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      phone: data.phone,
+    }),
+  }
+);
+
+const duplicateResult = await duplicateRes.json();
+
+if (duplicateResult.exists) {
+  setShowDuplicateDialog(true);
+  setIsSubmitting(false);
+  return;
+}
+
+setPendingApplication({
+  ...data,
+  resume,
 });
 
-const emailText = await emailRes.text();
+setShowOtpDialog(true);
 
-const emailResult = {
-  success: emailRes.ok,
-  message: emailText,
-};
-
-     if (sheetResult.success && emailResult.success) {
-  form.reset();
-
-  onOpenChange(false);
-
-  setTimeout(() => {
-    setShowSuccess(true);
-  }, 300);
-
-} else if (sheetResult.success) {
-        toast.success(`Application submitted to database, but email notification failed: ${emailResult.message || 'unknown error'}`);
-        form.reset();
-        onOpenChange(false);
-      } else {
-        toast.error("Failed to submit application. Please try again.");
-      }
+return;
     } catch (error) {
       console.error("Error submitting application:", error);
       toast.error("Failed to submit application. Please try again.");
@@ -280,7 +235,144 @@ const emailResult = {
       setIsSubmitting(false);
     }
   };
+const handleOtpVerified = async () => {
+  if (!pendingApplication) return;
 
+  const data = pendingApplication;
+  const resume = pendingApplication.resume;
+
+  try {
+    setIsSubmitting(true);
+
+    const payload = {
+  "Application Type": "Experienced Professional",
+  "Position": data.position,
+  "Full Name": data.fullName,
+  "Address": data.address,
+  "Phone": data.phone,
+  "Email": data.email,
+  "Undergraduate School": data.undergradInstitution,
+  "Undergraduate Degree": data.undergradDegree,
+  "Undergraduate Year": data.undergradYear,
+  "Postgraduate School": data.postgradInstitution || "",
+  "Postgraduate Degree": data.postgradDegree || "",
+  "Postgraduate Year": data.postgradYear || "",
+  "Company": data.company,
+  "Employment Position": data.employmentPosition,
+  "Start Date": data.startDate,
+  "End Date": data.endDate,
+  "Responsibilities": data.responsibilities,
+  "Skills": data.skills,
+  "Reference Name": data.referenceName || "",
+  "Reference Relationship": data.referenceRelationship || "",
+  "Reference Phone": data.referencePhone || "",
+};
+const scriptURL = getSheetUrlOrThrow("experienced");
+
+const sheetResult = await sendToGoogleSheet(
+  payload,
+  scriptURL
+);
+
+if (!sheetResult.success) {
+  throw new Error("Google Sheet submission failed.");
+}
+const formData = new FormData();
+
+formData.append("name", data.fullName);
+formData.append("email", data.email);
+formData.append("phone", data.phone);
+formData.append("skills", data.skills);
+formData.append("position", data.position);
+formData.append("experience", data.employmentPosition);
+formData.append("address", data.address);
+
+formData.append(
+  "undergraduate_institution",
+  data.undergradInstitution
+);
+
+formData.append(
+  "undergraduate_degree",
+  data.undergradDegree
+);
+
+formData.append(
+  "undergraduate_year",
+  data.undergradYear
+);
+
+formData.append(
+  "postgraduate_institution",
+  data.postgradInstitution || ""
+);
+
+formData.append(
+  "postgraduate_degree",
+  data.postgradDegree || ""
+);
+
+formData.append(
+  "postgraduate_year",
+  data.postgradYear || ""
+);
+
+formData.append("company", data.company);
+formData.append("employment_position", data.employmentPosition);
+formData.append("start_date", data.startDate);
+formData.append("end_date", data.endDate);
+formData.append("responsibilities", data.responsibilities);
+
+formData.append(
+  "reference_name",
+  data.referenceName || ""
+);
+
+formData.append(
+  "reference_relationship",
+  data.referenceRelationship || ""
+);
+
+formData.append(
+  "reference_phone",
+  data.referencePhone || ""
+);
+
+if (resume) {
+  formData.append("resume", resume);
+}
+const emailRes = await fetch(
+  "http://localhost:5000/send-email",
+  {
+    method: "POST",
+    body: formData,
+  }
+);
+
+if (!emailRes.ok) {
+  throw new Error("Failed to submit application.");
+}
+form.reset();
+
+setResume(null);
+
+setPendingApplication(null);
+
+setShowOtpDialog(false);
+
+setShowSuccess(true);
+
+onOpenChange(false);
+
+toast.success("Application submitted successfully.");
+
+  } catch (error) {
+    console.error(error);
+    toast.error("Submission failed.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   return (
       <>
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -689,6 +781,52 @@ const emailResult = {
       </div>
     </DialogContent>
   </Dialog>
+)}
+{showDuplicateDialog && (
+  <Dialog
+    open={showDuplicateDialog}
+    onOpenChange={setShowDuplicateDialog}
+  >
+    <DialogContent className="max-w-md text-center">
+      <div className="flex flex-col items-center gap-4 py-4">
+
+        <div className="w-20 h-20 rounded-full bg-orange-100 flex items-center justify-center">
+          <span className="text-5xl">⚠️</span>
+        </div>
+
+        <h2 className="text-3xl font-bold text-orange-600">
+          Application Already Exists
+        </h2>
+
+        <p className="text-muted-foreground leading-7">
+          This phone number has already been used to submit an application.
+          Please use a different phone number or contact the HR team if you believe this is an error.
+        </p>
+
+        <Button
+          onClick={() => setShowDuplicateDialog(false)}
+          className="w-full bg-orange-500 hover:bg-orange-600"
+        >
+          OK
+        </Button>
+
+      </div>
+    </DialogContent>
+  </Dialog>
+)}
+{pendingApplication && (
+  <OtpDialog
+    open={showOtpDialog}
+    onOpenChange={setShowOtpDialog}
+    phone={pendingPhone}
+    onVerify={handleOtpVerified}
+    onResend={async () => {}}
+    onClose={() => {
+      setShowOtpDialog(false);
+      setPendingApplication(null);
+      setIsSubmitting(false);
+    }}
+  />
 )}
 </>
 );

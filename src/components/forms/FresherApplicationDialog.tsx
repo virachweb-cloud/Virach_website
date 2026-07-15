@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { OtpDialog } from "../OtpDialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -22,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { sendToGoogleSheet } from "@/lib/utils";
 import { getSheetUrlOrThrow } from "@/lib/sheets";
-import { sendCareerApplicationEmail } from "@/lib/email";
+
 
 // ✅ Schema with UG required and PG optional
 const fresherFormSchema = z.object({
@@ -69,7 +70,16 @@ export const FresherApplicationDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resume, setResume] = useState<File | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+const [pendingApplication, setPendingApplication] = useState<
+  (FresherFormData & { resume: File | null }) | null
+>(null);
 
+const [showOtpDialog, setShowOtpDialog] = useState(false);
+const pendingPhone = useMemo(
+  () => pendingApplication?.phone ?? "",
+  [pendingApplication]
+);
   const form = useForm<FresherFormData>({
     resolver: zodResolver(fresherFormSchema),
     mode: "onChange",
@@ -93,61 +103,10 @@ export const FresherApplicationDialog = ({
   });
 
   const onSubmit = async (data: FresherFormData) => {
-    let scriptURL: string;
-    try {
-      scriptURL = getSheetUrlOrThrow("fresher");
-    } catch (err) {
-      toast.error("Configuration error: missing Google Script URL for fresher form.");
-      return;
-    }
+
     setIsSubmitting(true);
     try {
-      const payload = {
-        "Application Type": "Fresher",
-        "Position": data.position,
-        "Full Name": data.fullName,
-        "Address": data.address,
-        "Phone": data.phone,
-        "Email": data.email,
-        "Undergraduate School": data.ugSchool,
-        "Undergraduate Degree": data.ugDegree,
-        "Undergraduate Year": data.ugYearCompleted,
-        "Postgraduate School": data.pgSchool || "",
-        "Postgraduate Degree": data.pgDegree || "",
-        "Postgraduate Year": data.pgYearCompleted || "",
-        "Skills": data.skills,
-        "Reference Name": data.referenceName || "",
-        "Reference Relationship": data.referenceRelationship || "",
-        "Reference Phone": data.referencePhone || "",
-      };
 
-      // Send to Google Sheets
-      const sheetResult = await sendToGoogleSheet(payload, scriptURL);
-
-      // Send email notification
-      const emailPayload = {
-        position_applied: data.position,
-        full_name: data.fullName,
-        address: data.address,
-        phone_number: data.phone,
-        email_address: data.email,
-        ug_institution: data.ugSchool,
-        ug_degree: data.ugDegree,
-        ug_year: data.ugYearCompleted,
-        pg_institution: data.pgSchool || "N/A",
-        pg_degree: data.pgDegree || "N/A",
-        pg_year: data.pgYearCompleted || "N/A",
-        company_name: "N/A (Fresher)",
-        position_held: "N/A (Fresher)",
-        start_date: "N/A",
-        end_date: "N/A",
-        key_responsibilities: "N/A (Fresher)",
-        skills_and_qualifications: data.skills,
-        reference_name: data.referenceName || "N/A",
-        reference_relationship: data.referenceRelationship || "N/A",
-        reference_phone: data.referencePhone || "N/A",
-        submission_date: new Date().toLocaleDateString(),
-      };
 
 const formData = new FormData();
 
@@ -206,42 +165,138 @@ formData.append(
 if (resume) {
   formData.append("resume", resume);
 }
-const emailRes = await fetch("https://virach-website.onrender.com/send-email", {
-  method: "POST",
-  body: formData,
+
+const duplicateRes = await fetch(
+  "http://localhost:5000/check-application-duplicate",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      phone: data.phone,
+    }),
+  }
+);
+
+const duplicateData = await duplicateRes.json();
+
+if (duplicateData.exists) {
+  setShowDuplicateDialog(true);
+  setIsSubmitting(false);
+  return;
+}
+
+setPendingApplication({
+  ...data,
+  resume,
 });
 
-const emailText = await emailRes.text();
+setShowOtpDialog(true);
+setIsSubmitting(false);
 
-const emailResult = {
-  success: emailRes.ok,
-  message: emailText,
+return;
+} catch (error) {
+  console.error(error);
+  toast.error("Failed to submit application.");
+} finally {
+  setIsSubmitting(false);
+}
+};
+const handleOtpVerified = async () => {
+  if (!pendingApplication) return;
+
+  setIsSubmitting(true);
+
+  const data = pendingApplication;
+  const resume = pendingApplication.resume;
+
+  try {
+    console.log("OTP Verified");
+    const formData = new FormData();
+
+formData.append("name", data.fullName);
+formData.append("email", data.email);
+formData.append("phone", data.phone);
+formData.append("skills", data.skills);
+formData.append("position", data.position);
+formData.append("address", data.address);
+
+formData.append("undergraduate_institution", data.ugSchool);
+formData.append("undergraduate_degree", data.ugDegree);
+formData.append("undergraduate_year", data.ugYearCompleted);
+
+formData.append("postgraduate_institution", data.pgSchool || "");
+formData.append("postgraduate_degree", data.pgDegree || "");
+formData.append("postgraduate_year", data.pgYearCompleted || "");
+
+formData.append("reference_name", data.referenceName || "");
+formData.append("reference_relationship", data.referenceRelationship || "");
+formData.append("reference_phone", data.referencePhone || "");
+
+if (resume) {
+  formData.append("resume", resume);
+}
+const payload = {
+  position: data.position,
+  fullName: data.fullName,
+  address: data.address,
+  phone: data.phone,
+  email: data.email,
+  ugSchool: data.ugSchool,
+  ugDegree: data.ugDegree,
+  ugYearCompleted: data.ugYearCompleted,
+  pgSchool: data.pgSchool,
+  pgDegree: data.pgDegree,
+  pgYearCompleted: data.pgYearCompleted,
+  skills: data.skills,
+  referenceName: data.referenceName,
+  referenceRelationship: data.referenceRelationship,
+  referencePhone: data.referencePhone,
 };
 
-      if (sheetResult.success && emailResult.success) {
-  form.reset();
+const scriptURL = getSheetUrlOrThrow("fresher");
 
-  onOpenChange(false);
+const sheetResult = await sendToGoogleSheet(
+  payload,
+  scriptURL
+);
 
-  setTimeout(() => {
-    setShowSuccess(true);
-  }, 300);
+if (!sheetResult.success) {
+  throw new Error("Google Sheet submission failed.");
+}
 
-} else if (sheetResult.success) {
-        toast.success(`Application submitted to database, but email notification failed: ${emailResult.message || 'unknown error'}`);
-        form.reset();
-        onOpenChange(false);
-      } else {
-        toast.error("Failed to submit application. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error submitting application:", error);
-      toast.error("Failed to submit application. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+const emailRes = await fetch(
+  "http://localhost:5000/send-email",
+  {
+    method: "POST",
+    body: formData,
+  }
+);
 
+if (!emailRes.ok) {
+  throw new Error("Failed to submit application.");
+}
+
+form.reset();
+setResume(null);
+
+setShowSuccess(true);
+
+onOpenChange(false);
+
+toast.success("Application submitted successfully.");
+    // Next step we'll submit everything here.
+
+  } catch (error) {
+    console.error(error);
+    toast.error("Submission failed.");
+  } finally {
+    setShowOtpDialog(false);
+    setPendingApplication(null);
+    setIsSubmitting(false);
+  }
+};
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -570,6 +625,53 @@ const emailResult = {
     </DialogContent>
   </Dialog>
 )}
+
+{showDuplicateDialog && (
+  <Dialog
+    open={showDuplicateDialog}
+    onOpenChange={setShowDuplicateDialog}
+  >
+    <DialogContent className="max-w-md text-center">
+      <div className="flex flex-col items-center gap-4 py-4">
+
+        <div className="w-20 h-20 rounded-full bg-orange-100 flex items-center justify-center">
+          <span className="text-5xl">⚠️</span>
+        </div>
+
+        <h2 className="text-3xl font-bold text-orange-600">
+          Application Already Exists
+        </h2>
+
+        <p className="text-muted-foreground leading-7">
+          This phone number has already been used to submit an application.
+          Please use a different phone number or contact the HR team if you believe this is an error.
+        </p>
+
+        <Button
+          onClick={() => setShowDuplicateDialog(false)}
+          className="w-full bg-orange-500 hover:bg-orange-600"
+        >
+          OK
+        </Button>
+
+      </div>
+    </DialogContent>
+  </Dialog>
+)}
+{pendingApplication && (
+  <OtpDialog
+    open={showOtpDialog}
+    onOpenChange={setShowOtpDialog}
+    phone={pendingPhone}
+    onVerify={handleOtpVerified}
+    onResend={async () => {}}
+    onClose={() => {
+      setShowOtpDialog(false);
+      setPendingApplication(null);
+      setIsSubmitting(false);
+    }}
+  />
+)}
 </>
-  );
+);
 };
