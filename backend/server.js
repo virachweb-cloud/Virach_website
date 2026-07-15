@@ -56,7 +56,6 @@ app.post("/check-application-duplicate", async (req, res) => {
   }
 });
  //Send OTP
-//Send OTP
 app.post("/send-otp", async (req, res) => {
   console.log("/SEND OTP REQUEST RECEIVED ===");
   console.log("Request Body:", req.body);
@@ -72,7 +71,10 @@ app.post("/send-otp", async (req, res) => {
 
     const response = await axios.post(
       "https://control.msg91.com/api/v5/otp",
-      {},
+      {
+        otp_length: 6,
+        otp_expiry: 10,
+      },
       {
         params: {
           template_id: process.env.MSG91_TEMPLATE_ID,
