@@ -57,6 +57,8 @@ app.post("/check-application-duplicate", async (req, res) => {
 });
  //Send OTP
 app.post("/send-otp", async (req, res) => {
+  console.log("/SEND OTP REQUEST RECEIVED ===");
+  console.log("Request Body:", req.body);
   try {
     const { phone } = req.body;
 
