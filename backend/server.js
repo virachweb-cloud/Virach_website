@@ -64,8 +64,12 @@ app.post("/send-otp", async (req, res) => {
     const { phone } = req.body;
 
     // Normalize phone number
-    const mobile = phone.replace(/\D/g, "");
+    let mobile = phone.replace(/\D/g, "");
 
+    // If user enters a 10 digits numner, add country code
+    if (mobile.length === 10) {
+      mobile = "91" + mobile;
+    }
     console.log("Mobile sent to MSG91:", mobile);
     console.log("Template ID:", process.env.MSG91_TEMPLATE_ID);
 
@@ -107,11 +111,17 @@ app.post("/verify-otp", async (req, res) => {
   try {
     const { phone, otp } = req.body;
 
+    let mobile = phone.replace(/\D/g, "");
+
+    if (mobile.length === 10) {
+      mobile = "91" + mobile;
+    }
+
     const response = await axios.get(
       "https://control.msg91.com/api/v5/otp/verify",
       {
         params: {
-          mobile: `91${phone}`,
+          mobile: mobile,
           otp,
           authkey: process.env.MSG91_AUTH_KEY,
         },
