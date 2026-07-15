@@ -4,6 +4,7 @@ const multer = require("multer");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const axios = require("axios");
 require("dotenv").config();
 const supabase = require("./supabaseClient");
 
@@ -51,6 +52,68 @@ app.post("/check-application-duplicate", async (req, res) => {
 
     return res.status(500).json({
       success: false,
+    });
+  }
+});
+ //Send OTP
+app.post("/send-otp", async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    const response = await axios.post(
+      "https://control.msg91.com/api/v5/otp",
+      {},
+      {
+        params: {
+          template_id: process.env.MSG91_TEMPLATE_ID,
+          mobile: `91${phone}`,
+          authkey: process.env.MSG91_AUTH_KEY,
+        },
+      }
+    );
+
+    return res.json({
+      success: true,
+      message: "OTP sent successfully",
+      data: response.data,
+    });
+
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to send OTP",
+    });
+  }
+});
+//Verify OTP
+app.post("/verify-otp", async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+
+    const response = await axios.get(
+      "https://control.msg91.com/api/v5/otp/verify",
+      {
+        params: {
+          mobile: `91${phone}`,
+          otp,
+          authkey: process.env.MSG91_AUTH_KEY,
+        },
+      }
+    );
+
+    return res.json({
+      success: true,
+      ...response.data,
+    });
+
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+
+    return res.status(400).json({
+      success: false,
+      message: "Invalid OTP",
     });
   }
 });
