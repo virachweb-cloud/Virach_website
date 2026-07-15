@@ -200,7 +200,7 @@ if (resume) {
   formData.append("resume", resume);
 }
 const duplicateRes = await fetch(
-  "http://localhost:5000/check-application-duplicate",
+  "https://virach-website.onrender.com/check-application-duplicate",
   {
     method: "POST",
     headers: {
@@ -342,7 +342,7 @@ if (resume) {
   formData.append("resume", resume);
 }
 const emailRes = await fetch(
-  "http://localhost:5000/send-email",
+  "https://virach-website.onrender.com/send-email",
   {
     method: "POST",
     body: formData,
