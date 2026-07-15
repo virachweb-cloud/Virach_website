@@ -73,6 +73,8 @@ app.post("/send-otp", async (req, res) => {
         },
       }
     );
+    console.log("MSG91 Status:", response.status);
+    console.log("MSG91 Response:", response.data);
 
     return res.json({
       success: true,
