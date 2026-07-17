@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { ChevronDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { OtpDialog } from "../OtpDialog";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,7 +24,24 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { sendToGoogleSheet } from "@/lib/utils";
 import { getSheetUrlOrThrow } from "@/lib/sheets";
-
+const JOB_POSITIONS = [
+  "Software Developer",
+  "Full Stack Developer",
+  "Frontend Developer",
+  "Backend Developer",
+  "Mobile App Developer",
+  "UI/UX Designer",
+  "AI/ML Engineer",
+  "QA/Test Engineer",
+  "Data Entry Operator",
+  "HR Executive",
+  "Digital Marketing Executive",
+  "Business Development Executive",
+  "Technical Support Executive",
+  "Project Manager",
+  "Intern",
+  "Other",
+];
 // ✅ Zod schema
 const experiencedFormSchema = z.object({
   position: z.string().min(1, "Position is required"),
@@ -77,10 +95,34 @@ export const ExperiencedApplicationDialog = ({
   const [showSuccess, setShowSuccess] = useState(false);
 const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
 const [pendingApplication, setPendingApplication] = useState<
-  (ExperiencedFormData & { resume: File | null }) | null
+  (ExperiencedFormData & {
+    resume: File | null;
+    customPosition: string;
+  }) | null
 >(null);
 
 const [showOtpDialog, setShowOtpDialog] = useState(false);
+const [showPositions, setShowPositions] = useState(false);
+const [customPosition, setCustomPosition] = useState("");
+const [isOtherSelected, setIsOtherSelected] = useState(false);
+
+const dropdownRef = useRef<HTMLDivElement>(null);
+
+useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+      dropdownRef.current &&
+      !dropdownRef.current.contains(event.target as Node)
+    ) {
+      setShowPositions(false);
+    }
+  };
+
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () =>
+    document.removeEventListener("mousedown", handleClickOutside);
+}, []);
 
 const pendingPhone = useMemo(
   () => pendingApplication?.phone ?? "",
@@ -118,12 +160,15 @@ const pendingPhone = useMemo(
 
 
 const formData = new FormData();
-
+const finalPosition =
+  data.position === "Other"
+    ? customPosition
+    : data.position;
 formData.append("name", data.fullName);
 formData.append("email", data.email);
 formData.append("phone", data.phone);
 formData.append("skills", data.skills);
-formData.append("position", data.position);
+formData.append("position", finalPosition);
 formData.append("experience", data.employmentPosition);
 formData.append("address", data.address);
 
@@ -223,6 +268,7 @@ if (duplicateResult.exists) {
 setPendingApplication({
   ...data,
   resume,
+  customPosition,
 });
 
 setShowOtpDialog(true);
@@ -240,13 +286,14 @@ const handleOtpVerified = async () => {
 
   const data = pendingApplication;
   const resume = pendingApplication.resume;
+  const finalPosition = data.customPosition || data.position;
 
   try {
     setIsSubmitting(true);
 
     const payload = {
   "Application Type": "Experienced Professional",
-  "Position": data.position,
+  "Position": finalPosition,
   "Full Name": data.fullName,
   "Address": data.address,
   "Phone": data.phone,
@@ -283,7 +330,7 @@ formData.append("name", data.fullName);
 formData.append("email", data.email);
 formData.append("phone", data.phone);
 formData.append("skills", data.skills);
-formData.append("position", data.position);
+formData.append("position", finalPosition);
 formData.append("experience", data.employmentPosition);
 formData.append("address", data.address);
 
@@ -390,19 +437,90 @@ toast.success("Application submitted successfully.");
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Position */}
-            <FormField
-              control={form.control}
-              name="position"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Position Applied For</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Senior Developer, Tech Lead" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+           <FormField
+  control={form.control}
+  name="position"
+  render={({ field }) => (
+    <FormItem className="relative">
+      <FormLabel>Position Applied For</FormLabel>
+
+      <div ref={dropdownRef} className="relative">
+
+        <FormControl>
+          <div className="flex items-center border rounded-md h-12 px-3">
+
+            {isOtherSelected ? (
+              <>
+                <span className="text-gray-600 mr-2 whitespace-nowrap">
+                  Other :
+                </span>
+
+                <input
+                  type="text"
+                  value={customPosition}
+                  onChange={(e) => {
+                    setCustomPosition(e.target.value);
+                  }}
+                  placeholder="Enter Position"
+                  className="flex-1 outline-none bg-transparent"
+                />
+              </>
+            ) : (
+              <Input
+                value={field.value}
+                readOnly
+                placeholder="Select Position"
+                onClick={() =>
+                  setShowPositions((prev) => !prev)
+                }
+                className="border-0 shadow-none p-0 h-auto focus-visible:ring-0"
+              />
+            )}
+
+          </div>
+        </FormControl>
+
+        <ChevronDown
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 cursor-pointer"
+          onClick={() =>
+            setShowPositions((prev) => !prev)
+          }
+        />
+
+        {showPositions && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+
+            {JOB_POSITIONS.map((job) => (
+              <div
+                key={job}
+                className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                onClick={() => {
+                  if (job === "Other") {
+                    setIsOtherSelected(true);
+                    setCustomPosition("");
+                    field.onChange("Other");
+                  } else {
+                    setIsOtherSelected(false);
+                    setCustomPosition("");
+                    field.onChange(job);
+                  }
+
+                  setShowPositions(false);
+                }}
+              >
+                {job}
+              </div>
+            ))}
+
+          </div>
+        )}
+
+      </div>
+
+      <FormMessage />
+    </FormItem>
+  )}
+/>
 
             {/* Personal Info */}
             <div className="space-y-4">
