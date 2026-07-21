@@ -377,8 +377,8 @@ if (phoneCheckError) {
     await resend.emails.send({
   from: FROM_EMAIL,
   to: [
-  "Virach.web@outlook.com",
-  "virach.web@gmail.com"
+  "Team@virach.in",
+  "hr.Virach@gmail.com"
 ],
       subject: `${experience === "Experienced" ? "Experienced" : "Fresher"} Application - ${formattedName}`, 
 
